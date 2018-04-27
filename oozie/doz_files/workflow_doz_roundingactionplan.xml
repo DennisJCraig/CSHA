@@ -1,0 +1,29 @@
+<workflow-app name="rounding_action_plan" xmlns="uri:oozie:workflow:0.5">
+  <credentials>
+    <credential name="hive2" type="hive2">
+      <property>
+        <name>hive2.jdbc.url</name>
+        <value>jdbc:hive2://ahlclotxpla701.evv1.ah-isd.net:10000/default;ssl=true;sslTrustStore=/usr/java/latest/jre/lib/security/jssecacerts</value>
+      </property>
+      <property>
+        <name>hive2.server.principal</name>
+        <value>hive/ahlclotxpla701.evv1.ah-isd.net@DS.SJHS.COM</value>
+      </property>
+    </credential>
+  </credentials>
+  <start to="hive-doz"/>
+    <kill name="Kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill> 
+    <action name="hive-doz" cred="hive2" retry-max="3" retry-interval="2">
+        <hive2 xmlns="uri:oozie:hive2-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <jdbc-url>jdbc:hive2://ahlclotxpla701.evv1.ah-isd.net:10000/default;ssl=true;sslTrustStore=/usr/java/latest/jre/lib/security/jssecacerts</jdbc-url>
+            <script>hdfs://nameservice-dev/user/oozie/share/lib-ext/medxcel/scripts/hqlScripts/insert_doz_roundingactionplan.sql</script>			
+        </hive2>
+        <ok to="End"/>
+        <error to="Kill"/>
+    </action>
+    <end name="End"/>
+</workflow-app>

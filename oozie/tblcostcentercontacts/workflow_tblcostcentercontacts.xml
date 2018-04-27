@@ -1,0 +1,39 @@
+<workflow-app name="import_tblcostcentercontacts" xmlns="uri:oozie:workflow:0.5">
+  <credentials>
+    <credential name="hive2" type="hive2">
+      <property>
+        <name>hive2.jdbc.url</name>
+        <value>${hiveJdbcUrl}</value>
+      </property>
+      <property>
+        <name>hive2.server.principal</name>
+        <value>${hiveServerPrincipal}</value>
+      </property>
+    </credential>
+  </credentials>
+  <start to="sqoop-import"/>
+    <kill name="Kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <action name="sqoop-import" retry-max="3" retry-interval="2">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.2">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+			<command>import --connect ${jdbcUrl} --username ${dbUser} --password-file ${dbPasswordFile} --table tblcostcentercontacts -m 1 --as-avrodatafile --compress --compression-codec snappy --delete-target-dir  --target-dir "hdfs://nameservice-dev/user/hive/warehouse/dlz_mfm_cms.db/dlz_tblcostcentercontacts" --map-column-java IDCostCenterContact=String,IDCustomer=String,IDCustomerSegment=String,IDCostCenter=String,IDUser=String,IDRound=String,ContactName=String,ContactPhone=String,ContactEmail=String,IsSafety=String</command>
+        </sqoop>
+        <ok to="hive-dsz"/>
+        <error to="Kill"/>
+    </action>
+    <action name="hive-dsz" cred="hive2" retry-max="3" retry-interval="2">
+        <hive2 xmlns="uri:oozie:hive2-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <jdbc-url>${hiveJdbcUrl}</jdbc-url>
+            <script>hdfs://nameservice-dev/user/oozie/share/lib-ext/medxcel/scripts/hqlScripts/insert_dsz_tblcostcentercontacts.sql</script>
+			<param>processId=${wf:id()}</param>
+        </hive2>
+        <ok to="End"/>
+        <error to="Kill"/>
+    </action>
+    <end name="End"/>
+</workflow-app>

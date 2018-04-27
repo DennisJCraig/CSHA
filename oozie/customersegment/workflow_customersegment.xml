@@ -1,0 +1,39 @@
+<workflow-app name="import_customersegment" xmlns="uri:oozie:workflow:0.5">
+  <credentials>
+    <credential name="hive2" type="hive2">
+      <property>
+        <name>hive2.jdbc.url</name>
+        <value>${hiveJdbcUrl}</value>
+      </property>
+      <property>
+        <name>hive2.server.principal</name>
+        <value>${hiveServerPrincipal}</value>
+      </property>
+    </credential>
+  </credentials>
+  <start to="sqoop-import"/>
+    <kill name="Kill">
+        <message>Action failed, error message[${wf:errorMessage(wf:lastErrorNode())}]</message>
+    </kill>
+    <action name="sqoop-import" retry-max="3" retry-interval="2">
+        <sqoop xmlns="uri:oozie:sqoop-action:0.2">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+			<command>import --connect ${jdbcUrl} --username ${dbUser} --password-file ${dbPasswordFile} --table customersegment -m 1 --as-avrodatafile --compress --compression-codec snappy --delete-target-dir  --target-dir "hdfs://nameservice-dev/user/hive/warehouse/dlz_mfm_cms.db/dlz_customersegment" --map-column-java IDCustomerSegment=String,IDCustomer=String,SegmentNumber=String,SegmentName=String,SegmentAddress1=String,SegmentAddress2=String,SegmentAddress3=String,SegmentCity=String,IDSegmentCountry=String,IDSegmentRegion=String,SegmentPostalCode=String,IDSegmentTimeZone=String,IDSegmentStatus=String,SegmentShared=String,SegmentNotes=String,IDUserCreated=String,DateCreated=String,IDUserUpdated=String,DateUpdated=String,medTesterEnabled=String,Logo=String,AssignmentUseDefaultEmail=String,AssignmentDefaultEmail=String,AssignmentEmailSubject=String,AssignmentEmailBody=String,AssignmentPageBody=String,UseRequesterTable=String,Theme=String,TC_ShowStartTime=String,TC_ShowEndTime=String,RequisitionUserEnteredRequisitionID=String,CMSInSiteEnabled=String,CMSInSiteResource=String,WOAutoFillCompleteDate=String,RequiredFieldColor=String,MoveDays=String,MoveMonday=String,MoveTuesday=String,MoveWednesday=String,MoveThursday=String,MoveFriday=String,MoveSaturday=String,MoveSunday=String,MoveStatus=String,MoveMessage=String,WOFutureClose=String,ReqAssetNote=String,UserAvailability=String,MaxTimeCharge=String,RenewalDays=String,IDCustomerSegment2=String,IDCustomer2=String,WOAllowCompleteDate=String,SharedWONumbering=String,RequisitionDisableIssueTo=String,RequisitionDefaultIssueTo=String,RequisitionDisableWONumber=String,RequisitionShowForeignKey=String,RequisitionHideTaxRate=String,RequisitionHideCategory=String,RequisitionHideVendorAddress=String,RequisitionDefaultMaterialType=String,RequisitionHideOrderUOM=String,RequisitionDefaultOrderUOM=String,RequisitionHideOrderUOMFactor=String,RequisitionDefaultOrderUOMFactor=String,RequisitionDisableVendorPartNumberAutopopulate=String,MaterialDisableNegativeReceipts=String,MaterialDisableReceiptQuantityGreaterThanOrdered=String,UseLocationLookup=String,RequisitionMaxDescriptionCharacters=String,RequisitionQuantityPositiveInteger=String,RequisitionDisableMaterialType=String,RequisitionDisableVendorUnitCost=String,RequisitionUnitCostPositive=String,SupportLinkText=String,WOReceiveAllToComplete=String,AutoLoginEnabled=String,WOAssetOverride=String,CMSTechEnableWOSignatures=String,IDSegmentCategory=String,CMSTechEnableAutomaticTCCalculation=String,CMSTechEnableAssetCategoryStandardDescriptions=String,CMSTechShowMaterialChargeOnWOCompleteTab=String,HeaderBarColor40=String,HeaderBarFontColor40=String,PopulateCostCenterOnLocationSelection=String</command>
+        </sqoop>
+        <ok to="hive-dsz"/>
+        <error to="Kill"/>
+    </action>
+    <action name="hive-dsz" cred="hive2" retry-max="3" retry-interval="2">
+        <hive2 xmlns="uri:oozie:hive2-action:0.1">
+            <job-tracker>${jobTracker}</job-tracker>
+            <name-node>${nameNode}</name-node>
+            <jdbc-url>${hiveJdbcUrl}</jdbc-url>
+            <script>hdfs://nameservice-dev/user/oozie/share/lib-ext/medxcel/scripts/hqlScripts/insert_dsz_customersegment.sql</script>
+			<param>processId=${wf:id()}</param>
+        </hive2>
+        <ok to="End"/>
+        <error to="Kill"/>
+    </action>
+    <end name="End"/>
+</workflow-app>
